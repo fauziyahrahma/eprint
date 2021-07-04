@@ -114,9 +114,6 @@ class Konsumen extends CI_Controller
         //------------------
 
         $data['pesanan'] = $this->Konsumen_model->getIsiKeranjang($id_user);
-        $data['num_pesanan'] = $this->Konsumen_model->getNumIsiKeranjang($id_user);
-        $data['num_pesanan_aktif'] = $this->Konsumen_model->getNumIsiKeranjangAktif($id_user);
-        $data['ukuran'] = $this->Konsumen_model->getUkuran();
 
         $this->load->view('templatesKonsumen/header', $data);
         $this->load->view('konsumen/cart', $data);
@@ -128,12 +125,13 @@ class Konsumen extends CI_Controller
         // harus ditambah disetiap method
         $id_user = $this->session->userdata('id_user');
 
-        $data['jumlah_keranjang'] = $this->Konsumen_model->getCountKeranjang($id_user);
-        $data['jumlah_keranjang_aktif'] = $this->Konsumen_model->getCountKeranjangAktif($id_user);
-        $data['jenis_bayar'] = $this->Konsumen_model->getJenisBayar();
+        $data['jumlah_keranjang'] = $this->Konsumen_model->getCountKeranjang(
+            $id_user
+        );
 
-        $data['barang_keranjang'] = $this->Konsumen_model->getIsiKeranjang($id_user);
-        $data['barang_keranjang_aktif'] = $this->Konsumen_model->getIsiKeranjangAktif($id_user);
+        $data['barang_keranjang'] = $this->Konsumen_model->getIsiKeranjang(
+            $id_user
+        );
 
         // $data['barang_keranjang1'] = $this->Konsumen_model->getCheckout(
         //     $id_user, $ctn
@@ -146,7 +144,7 @@ class Konsumen extends CI_Controller
         ];
 
         $where_upd = [
-            'status_pesanan' => 'di dalam keranjang aktif',
+            'status_pesanan' => 'di dalam keranjang',
             'tanggal_checkout' => null,
             'id_user' => $id_user,
         ];
@@ -157,7 +155,7 @@ class Konsumen extends CI_Controller
 
         // $ctn = $limit['jml'];
 
-        $data['all_pesanan'] = $this->Konsumen_model->getIsiKeranjangAktif($id_user);
+        $data['all_pesanan'] = $this->Konsumen_model->getIsiKeranjang($id_user);
 
         $this->load->view('templatesKonsumen/header', $data);
         $this->load->view('konsumen/checkout', $data);
@@ -201,8 +199,6 @@ class Konsumen extends CI_Controller
         }
 
         $data['barang'] = $this->Konsumen_model->getBarang($kategori);
-
-        $data['ukuran'] = $this->Konsumen_model->getUkuran();
 
         $nama_kategori = $this->Konsumen_model->getNamaBarang($kategori);
 
@@ -255,16 +251,37 @@ class Konsumen extends CI_Controller
                 $id_pakaiian
             );
 
-            $jumlah_barang = 0;
-            $biaya_tambahan = 0;
-            foreach ($this->input->post('ukuran') as $item => $value) {
-                $jumlah_barang += $value;
-                if ($item == 5 || $item == 6) {
-                    $biaya_tambahan += 10000 * $value;
-                }
-            }
+            $ukuranS = $this->input->post('uk_s');
+            $ukuranM = $this->input->post('uk_m');
+            $ukuranL = $this->input->post('uk_l');
+            $ukuranXL = $this->input->post('uk_xl');
+            $ukuranXXL = $this->input->post('uk_xxl');
+            $ukuran3XL = $this->input->post('uk_3xl');
 
-            if ($jumlah_barang < 1) {
+            /* if($ukuranS == null || $ukuranM == null || $ukuranL == null ||
+            $ukuranXL == null || $ukuranXXL == null || $ukuran3XL == null)
+            {
+                //redirect('pesanBarang/'.$this->input->post('idd'));
+                echo $this->input->post('idd');
+            } */
+                
+
+            $jumlah_barang =
+                $ukuranS +
+                $ukuranM +
+                $ukuranL +
+                $ukuranXL +
+                $ukuranXXL +
+                $ukuran3XL;
+
+            if (
+                $ukuran3XL <= 0 &&
+                $ukuranL <= 0 &&
+                $ukuranM <= 0 &&
+                $ukuranS <= 0 &&
+                $ukuranXL <= 0 &&
+                $ukuranXXL <= 0
+            ) {
                 $this->session->set_flashdata(
                     'pesan',
                     '<div class="alert alert-danger alert-dismissible" role="alert">
@@ -274,15 +291,14 @@ class Konsumen extends CI_Controller
                         </button>
                     </div>'
                 );
-
                 $idd = $this->input->post('idd');
                 redirect('konsumen/pesanBarang/'.$idd);
-
-                //redirect("konsumen/pesanBarang/$nama_barang");
             } else {
                 $harga_paket = $cekHarga['harga'];
                 $total_harga =
-                    $cekHarga['harga'] * $jumlah_barang + $biaya_tambahan;
+                    $cekHarga['harga'] * $jumlah_barang +
+                    10000 * $ukuranXXL +
+                    10000 * $ukuran3XL;
 
                 $tanggal_bayar = '';
                 $status = 'di dalam keranjang';
@@ -298,6 +314,12 @@ class Konsumen extends CI_Controller
                 $data = [
                     // 'id_barang' => htmlspecialchars($id_barang),
                     'id_kategori' => htmlspecialchars($id_kategori),
+                    'ukuran_s' => htmlspecialchars($ukuranS),
+                    'ukuran_m' => htmlspecialchars($ukuranM),
+                    'ukuran_l' => htmlspecialchars($ukuranL),
+                    'ukuran_xl' => htmlspecialchars($ukuranXL),
+                    'ukuran_xxl' => htmlspecialchars($ukuranXXL),
+                    'ukuran_3xl' => htmlspecialchars($ukuran3XL),
                     'jumlah_barang' => htmlspecialchars($jumlah_barang),
                     'harga_paket' => htmlspecialchars($harga_paket),
                     'total_harga' => htmlspecialchars($total_harga),
@@ -307,19 +329,6 @@ class Konsumen extends CI_Controller
                 ];
 
                 $this->db->insert('pemesanan', $data);
-                $id_pemesanan = $this->db->insert_id();
-                $ukuran = $this->Konsumen_model->getUkuran();
-
-                foreach ($this->input->post('ukuran') as $item => $value) {
-                    if ($value != 0) {
-                        $this->db->insert('sub_pemesanan', [
-                            'id_ukuran' => $item,
-                            'id_pemesanan' => $id_pemesanan,
-                            'kuantitas' => $value
-                        ]);
-
-                    }
-                }
 
                 $this->session->set_flashdata(
                     'pesan',
@@ -366,7 +375,6 @@ class Konsumen extends CI_Controller
         $data['aktif_proses'] = "";
         $data['aktif_kirim'] = "";
         $data['aktif_dp'] = "";
-        $data['aktif_tolak'] = "";
 
         if ($stat == "pending") {
             $data['aktif_pending'] = "active";
@@ -374,8 +382,6 @@ class Konsumen extends CI_Controller
             $data['aktif_proses'] = "active";
         } elseif ($stat == "dikirim") {
             $data['aktif_kirim'] = "active";
-        } elseif ($stat == "ditolak") {
-            $data['aktif_tolak'] = "active";
         } else {
             $data['aktif_dp'] = "active";
         }
@@ -491,13 +497,17 @@ class Konsumen extends CI_Controller
     {
         // harus ditambah disetiap method
         $id_user = $this->session->userdata('id_user');
-        $data['jumlah_keranjang'] = $this->Konsumen_model->getCountKeranjang($id_user);
+        $data['jumlah_keranjang'] = $this->Konsumen_model->getCountKeranjang(
+            $id_user
+        );
         $data['status'] = $this->Konsumen_model->getStatususer();
 
-        $data['barang_keranjang'] = $this->Konsumen_model->getIsiKeranjang($id_user);
+        $data['barang_keranjang'] = $this->Konsumen_model->getIsiKeranjang(
+            $id_user
+        );
         //------------------
 
-        $data['user'] = $this->Konsumen_model->getUserById($id);
+        $data['user'] = $this->Konsumen_model->getKonsumenData($id);
         $this->load->view('templatesKonsumen/header', $data);
         $this->load->view('konsumen/profile', $data);
         $this->load->view('templatesKonsumen/footer');
@@ -519,51 +529,39 @@ class Konsumen extends CI_Controller
 
     public function editJumlahBarang($id)
     {
+        $ukuran_s = $this->input->post('ukuran_s');
+        $ukuran_m = $this->input->post('ukuran_m');
+        $ukuran_l = $this->input->post('ukuran_l');
+        $ukuran_xl = $this->input->post('ukuran_xl');
+        $ukuran_xxl = $this->input->post('ukuran_xxl');
+        $ukuran_3xl = $this->input->post('ukuran_3xl');
         $harga_paket = $this->input->post('price');
 
-        $jumlah_barang = 0;
-        $biaya_tambahan = 0;
-        foreach ($this->input->post('ukuran') as $item => $value) {
-            $jumlah_barang += $value;
-            if ($item == 5 || $item == 6) {
-                $biaya_tambahan += 10000 * $value;
-            }
-        }
-        
+        $jumlah_barang =
+            $ukuran_s +
+            $ukuran_m +
+            $ukuran_l +
+            $ukuran_xl +
+            $ukuran_xxl +
+            $ukuran_3xl;
+
         $total_harga =
-            $harga_paket * $jumlah_barang + $biaya_tambahan;
+            $harga_paket * $jumlah_barang +
+            10000 * $ukuran_xxl +
+            10000 * $ukuran_3xl;
 
         $data = [
+            'ukuran_s' => $ukuran_s,
+            'ukuran_m' => $ukuran_m,
+            'ukuran_l' => $ukuran_l,
+            'ukuran_xl' => $ukuran_xl,
+            'ukuran_xxl' => $ukuran_xxl,
+            'ukuran_3xl' => $ukuran_3xl,
             'jumlah_barang' => $jumlah_barang,
             'total_harga' => $total_harga,
         ];
 
         $this->Konsumen_model->editJumlahBarang($data, $id);
-        $ukuran = $this->Konsumen_model->getUkuran();
-
-        foreach ($this->input->post('ukuran') as $item => $value) {
-            if ($value != 0) {
-                $sub_pemesanan = $this->db->get_where('sub_pemesanan',[
-                    'id_pemesanan' => $id,
-                    'id_ukuran' => $item
-                ]);
-                if ($sub_pemesanan->num_rows() < 1) {
-                    $this->db->insert('sub_pemesanan', [
-                        'id_ukuran' => $item,
-                        'id_pemesanan' => $id,
-                        'kuantitas' => $value
-                    ]);
-                } else{
-                    $this->db->where('id', $sub_pemesanan->row()->id);
-                    $this->db->update('sub_pemesanan',['kuantitas' => $value]);
-                }
-
-            }
-        }
-
-        
-
-
 
         $this->session->set_flashdata(
             'pesan',
@@ -623,7 +621,7 @@ class Konsumen extends CI_Controller
             'phonenumber' => $phonenumber,
             'email' => $email,
             'alamat' => $alamat,
-            // 'role_id' => $status,
+            'role_id' => $status,
             //'status' => $status,
         ];
         $this->session->set_userdata($data);
@@ -955,7 +953,7 @@ class Konsumen extends CI_Controller
     {
         $jenis_bayar = $this->input->post('pembayarann');
 
-        if($jenis_bayar == ''){
+        if($jenis_bayar == 'choose'){
             $this->session->set_flashdata(
                 'danger',
                 '<div class="alert alert-danger alert-dismissible show" role="alert">
@@ -975,7 +973,7 @@ class Konsumen extends CI_Controller
         $email = $this->input->post('email');
         $phone = $this->input->post('phone');
         $alamat = $this->input->post('alamat');
-        $bukti_bayar = $this->input->post('bukti_bayar');
+        //$bukti_bayar = $this->input->post('bukti_bayar');
         $notes = $this->input->post('notes');
 
         $id_pesanan = $this->input->post('id_pesanan');
@@ -992,11 +990,13 @@ class Konsumen extends CI_Controller
         $total_bayar = $this->input->post('total_bayar');
 
         $jml_bayar = 0;
-        if ($jenis_bayar == 2) {
+        if ($jenis_bayar == "dp") {
             $jml_bayar = $total_bayar / 2;
+            $jns_bayar = 0;
             // $data_bayar['bukti_dp']= $this->_uploadFile();
         } else {
             $jml_bayar = $total_bayar;
+            $jns_bayar = 1;
             // $data_bayar['bukti_bayar']= $this->_uploadFile();
         }
         echo $total_bayar;
@@ -1007,17 +1007,17 @@ class Konsumen extends CI_Controller
             'tanggal_bayar' => $tanggal_bayar,
             'total_bayar' => $jml_bayar,
             'nama_pemesan' => $nama_pemesan,
-            'jenis_bayar' => $jenis_bayar,
+            'jenis_bayar' => $jns_bayar,
             'email' => $email,
             'phone' => $phone,
             'alamat_rumah' => $alamat,
             'notes' => $notes,
         ];
-        /*if ($jenis_bayar == "dp") {
+        /* if ($jenis_bayar == "dp") {
             $data_bayar['bukti_dp'] = $this->_uploadFile();
         } else {
             $data_bayar['bukti_bayar'] = $this->_uploadFile();
-        }*/
+        } */
 
         $this->db->insert('pembayaran', $data_bayar);
 
@@ -1033,7 +1033,7 @@ class Konsumen extends CI_Controller
             for ($i = 0; $i < count($id_pesan_baru); $i++) {
                 $data_updd = [
                     'id_pesanan' => $id_pesan_baru[$i],
-                    // 'status_pesanan' => 'di dalam keranjang aktif',
+                    // 'status_pesanan' => 'checkout',
                 ];
                 $this->Konsumen_model->update('pemesanan', $data_updd, $data_update_pesanan);
             }
@@ -1041,7 +1041,7 @@ class Konsumen extends CI_Controller
             $id_pesan_baru = $id_pesanan;
             $data_updd = [
                 'id_pesanan' => $id_pesan_baru,
-                // 'status_pesanan' => 'di dalam keranjang aktif',
+                // 'status_pesanan' => 'checkout',
             ];
             $this->Konsumen_model->update('pemesanan', $data_updd, $data_update_pesanan);
         }
@@ -1099,7 +1099,7 @@ class Konsumen extends CI_Controller
             die();
         }
     }
-//asdasd
+
     public function bayar_dp()
     {
 
@@ -1113,31 +1113,6 @@ class Konsumen extends CI_Controller
         echo $respone;
         redirect('konsumen/statusPemesanan/proses');
     }
-    public function upload()
-    {
-        $id_bayar = $this->input->post('id_bayar');
-        $query = $this->db->query("SELECT jenis_bayar FROM pembayaran WHERE id_bayar = '$id_bayar'")->row_array();
-        $jb = $query['jenis_bayar'];
-        //echo $jb;
-        if($jb == 1){ //lunas
-            $data = [
-                // 'bukti_dp' => $this->_uploadFile(),
-                'bukti_bayar' => $this->_uploadFile(),
-            ];
-        }else{
-            $data = [
-                'bukti_dp' => $this->_uploadFile(),
-            ];
-        }
-        //echo $this->input->post('jenis_bayar');
-
-        //$id_bayar = $this->input->post('id_bayar');
-        //echo  $id_bayar;
-        $respone = $this->Konsumen_model->update('pembayaran', ['id_bayar' => $id_bayar], $data);
-        
-        redirect('konsumen/statusPemesanan/pending');
-    }
-//asdasd 
 
     private function _uploadFile()
     {
@@ -1146,16 +1121,9 @@ class Konsumen extends CI_Controller
         $type = $_FILES['bukti_bayar']['type'];
         $eror = $_FILES['bukti_bayar']['error'];
 
-        // $nama_file = str_replace(" ", "_", $namaFiles);
+       
         $tmpName = $_FILES['bukti_bayar']['tmp_name'];
-        // $nama_folder = "assets_user/file_upload/";
-        // $file_baru = $nama_folder . basename($nama_file);
-
-        // if ((($type == "video/mp4") || ($type == "video/3gpp")) && ($ukuranFile < 8000000)) {
-
-        //   move_uploaded_file($tmpName, $file_baru);
-        //   return $file_baru;
-        // }
+       
 
         if ($eror === 4) {
             $this->session->set_flashdata(
@@ -1248,7 +1216,6 @@ class Konsumen extends CI_Controller
         //------------------
 
         $data['detail_pesan'] = $this->Konsumen_model->getDetailPesan($id_bayar);
-        $data['ukuran'] = $this->Konsumen_model->getUkuran();
 
         $this->load->view('templatesKonsumen/header', $data);
         $this->load->view('konsumen/detail_pesan', $data);
@@ -1298,7 +1265,7 @@ class Konsumen extends CI_Controller
 
         $this->db->insert('feedback', $data);
 
-        redirect('Konsumen/testimoni');
+        redirect('Konsumen');
     }
 
     public function halamanBaru()
@@ -1368,28 +1335,4 @@ class Konsumen extends CI_Controller
         $this->load->view('konsumen/kontak', $data);
         $this->load->view('templatesKonsumen/footer');
     }
-
-    public function ubahStatus($id = null, $status = null)
-    {
-        $this->db->where('id_pesanan', $id);
-        if ($status == 'aktif') {
-            $this->db->update('pemesanan', ['status_pesanan' => 'di dalam keranjang aktif']);
-        } else{
-            $this->db->update('pemesanan', ['status_pesanan' => 'di dalam keranjang']);
-        }
-        redirect('Konsumen/cart');
-    }
-
-    public function ubahAllStatus($status = null)
-    {
-        if ($status == 'aktif') {
-            $this->db->where('status_pesanan', 'di dalam keranjang');
-            $this->db->update('pemesanan', ['status_pesanan' => 'di dalam keranjang aktif']);
-        } else{
-            $this->db->where('status_pesanan', 'di dalam keranjang aktif');
-            $this->db->update('pemesanan', ['status_pesanan' => 'di dalam keranjang']);
-        }
-        redirect('Konsumen/cart');
-    }
-
 }
