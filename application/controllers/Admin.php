@@ -7,6 +7,7 @@ class Admin extends CI_Controller
     {
         parent::__construct();
         $this->load->model('Admin_model');
+        $this->load->model('Konsumen_model');
     }
 
     public function index()
@@ -155,6 +156,8 @@ class Admin extends CI_Controller
 
         $data['pesanan'] = $this->Admin_model->getDetailPesanan($id);
         // print_r($data['pesanan']);
+        $data['ukuran'] = $this->Konsumen_model->getUkuran();
+
 
         $this->load->view('templates/header', $data);
         $this->load->view('templates/sidebar', $data);
@@ -287,9 +290,8 @@ class Admin extends CI_Controller
 
     public function deleteBarang($id)
     {
-        $refresh = $this->input->post('refresh');
         $this->Admin_model->delete_barang($id);
-        redirect('admin/dataBarang/' . $refresh);
+        redirect($_SERVER['HTTP_REFERER']);
     }
 
     public function tambahKategori()
@@ -468,61 +470,6 @@ class Admin extends CI_Controller
         $this->load->view('templates/sidebar', $data);
         $this->load->view('admin/historiPesanan', $data);
         $this->load->view('templates/footer', $data);
-    }
-
-    public function CetakHistoriPesanan()
-    {
-        if(isset($_POST['submit'])){
-            $a = $this->input->post('range1');
-            $b = $this->input->post('range2');
-
-            $data['title'] = 'Riwayat Pesanan';
-
-            $data['admindata'] = $this->Admin_model->getAdmin();
-            $data['pesanan'] = $this->Admin_model->getBytgl($a, $b);
-
-            $data['range1'] = $a;
-            $data['range2'] = $b;
-            //echo $a." ".$b;
-
-            $this->load->view('templates/header', $data);
-            $this->load->view('templates/sidebar', $data);
-            $this->load->view('admin/cetakRiwayatPemesanan', $data);
-            $this->load->view('templates/footer', $data);
-
-        }else{
-
-            $data['title'] = 'Riwayat Pesanan';
-
-            $data['admindata'] = $this->Admin_model->getAdmin();
-            $data['pesanan'] = $this->Admin_model->getAllPesananHistory();
-
-            $data['range1'] ="";
-            $data['range2'] ="";
-
-            $this->load->view('templates/header', $data);
-            $this->load->view('templates/sidebar', $data);
-            $this->load->view('admin/cetakRiwayatPemesanan', $data);
-            $this->load->view('templates/footer', $data);
-        }
-    }
-
-    public function print_histori()
-    {
-        $a = $this->uri->segment(3);
-        $b = $this->uri->segment(4);
-
-        $data['title'] = 'Riwayat Pesanan';
-
-        $data['admindata'] = $this->Admin_model->getAdmin();
-        $data['pesanan'] = $this->Admin_model->getBytgl($a, $b);
-
-        $data['range1'] = $a;
-        $data['range2'] = $b;
-
-        
-        $this->load->view('admin/print_histori', $data);
-        
     }
 
     public function postingan()
